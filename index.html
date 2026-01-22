@@ -2,122 +2,98 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Mykish Travels | Ellaidhoo Pro Engine</title>
+    <title>Mykish Travels | Ellaidhoo Precision Calc</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-50 font-sans">
+<body class="bg-slate-100 p-8">
     <div id="root"></div>
     <script type="text/babel">
         const { useState } = React;
 
         const seasons = [
-            { start: "2025-11-01", end: "2025-12-24", price: 315 }, // Winter Early
-            { start: "2025-12-25", end: "2026-01-05", price: 488 }, // Festive
-            { start: "2026-01-06", end: "2026-04-30", price: 418 }, // Winter High
-            { start: "2026-05-01", end: "2026-09-30", price: 235 }  // Summer
+            { start: "2025-11-01", end: "2025-12-24", dbl: 315, child3: 79 },
+            { start: "2025-12-25", end: "2026-01-05", dbl: 488, child3: 122 },
+            { start: "2026-01-06", end: "2026-04-30", dbl: 418, child3: 105 },
+            { start: "2026-05-01", end: "2026-09-30", dbl: 235, child3: 59 },
+            { start: "2026-10-01", end: "2026-10-31", dbl: 315, child3: 79 }
         ];
 
         function App() {
-            const [markup, setMarkup] = useState(10);
-            const [discount, setDiscount] = useState(0);
-            const [start, setStart] = useState("");
-            const [end, setEnd] = useState("");
+            const [checkIn, setCheckIn] = useState("");
+            const [checkOut, setCheckOut] = useState("");
             const [adults, setAdults] = useState(2);
             const [kids, setKids] = useState(0);
-            const [transferPrice, setTransferPrice] = useState(250); // Default Speedboat
+            const [markup, setMarkup] = useState(10);
+            const [discount, setDiscount] = useState(0);
 
             const getNights = () => {
-                if(!start || !end) return 0;
-                return Math.ceil((new Date(end) - new Date(start)) / (1000*60*60*24));
+                if (!checkIn || !checkOut) return 0;
+                const n = (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24);
+                return n > 0 ? n : 0;
             };
 
-            const getSeasonalRate = () => {
-                const checkIn = new Date(start);
-                const season = seasons.find(s => checkIn >= new Date(s.start) && checkIn <= new Date(s.end));
-                return season ? season.price : 315; 
+            const getSeason = () => {
+                const date = new Date(checkIn);
+                return seasons.find(s => date >= new Date(s.start) && date <= new Date(s.end)) || seasons[0];
             };
 
             const calculate = () => {
                 const nights = getNights();
-                const people = parseInt(adults) + parseInt(kids);
-                const rate = getSeasonalRate();
-
-                const stayTotal = (rate * nights);
-                const discountedStay = stayTotal * (1 - (discount / 100));
+                const season = getSeason();
+                const totalPeople = parseInt(adults) + parseInt(kids);
                 
-                const transTotal = (transferPrice * adults) + ((transferPrice / 2) * kids);
-                const greenTax = 12 * people * nights;
+                // 1. Stay Cost: 1st & 2nd child free. Only 3rd child is charged.
+                const roomBase = season.dbl * nights;
+                const extraChildCost = kids > 2 ? (season.child3 * nights * (kids - 2)) : 0;
+                const stayTotal = roomBase + extraChildCost;
 
-                const subtotalWithMarkup = (discountedStay + transTotal) * (1 + (markup / 100));
-                return subtotalWithMarkup + greenTax;
+                // 2. Discount applies ONLY to Stay
+                const discountedStay = stayTotal * (1 - (discount / 100));
+
+                // 3. Transfers: $250/adult, $125/child (Speedboat Roundtrip)
+                const transferTotal = (adults * 250) + (kids * 125);
+
+                // 4. Markup applies to (Discounted Stay + Transfers)
+                const subtotal = (discountedStay + transferTotal) * (1 + (markup / 100));
+
+                // 5. Green Tax: $12 per person per night (Add at the very end)
+                const greenTax = 12 * totalPeople * nights;
+
+                return subtotal + greenTax;
             };
 
             return (
-                <div className="max-w-4xl mx-auto p-10">
-                    <div className="bg-white rounded-[2rem] shadow-2xl overflow-hidden border">
-                        <div className="p-8 bg-slate-900 text-white flex justify-between items-center">
-                            <div>
-                                <h1 className="text-2xl font-black italic">ELLAIDHOO MALDIVES</h1>
-                                <p className="text-blue-400 text-[10px] font-bold uppercase tracking-widest">Confidential Agent Rates</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-4xl font-black text-blue-400">${calculate().toLocaleString()}</p>
-                                <p className="text-[10px] opacity-50 font-bold uppercase">Total Quote (Inc. Tax & Markup)</p>
-                            </div>
+                <div className="max-w-2xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border">
+                    <div className="bg-slate-900 p-8 text-white">
+                        <h1 className="text-xl font-black italic tracking-widest">ELLAIDHOO MALDIVES</h1>
+                        <p className="text-blue-400 text-[10px] font-bold uppercase mt-1">Winter 2025/26 - Professional Quote</p>
+                    </div>
+                    
+                    <div className="p-8 space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase">Check-In <input type="date" className="block w-full mt-1 p-3 bg-slate-50 border rounded-xl" onChange={e => setCheckIn(e.target.value)}/></label>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase">Check-Out <input type="date" className="block w-full mt-1 p-3 bg-slate-50 border rounded-xl" onChange={e => setCheckOut(e.target.value)}/></label>
                         </div>
 
-                        <div className="p-10 grid grid-cols-2 gap-8">
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Check-In & Check-Out</label>
-                                    <div className="flex gap-2">
-                                        <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setStart(e.target.value)} />
-                                        <input type="date" className="w-full p-3 bg-slate-50 rounded-xl border" onChange={e => setEnd(e.target.value)} />
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Adults</label>
-                                        <input type="number" value={adults} className="w-full p-3 bg-slate-50 rounded-xl border font-bold" onChange={e => setAdults(e.target.value)} />
-                                    </div>
-                                    <div>
-                                        <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Kids (2-11)</label>
-                                        <input type="number" value={kids} className="w-full p-3 bg-slate-50 rounded-xl border font-bold" onChange={e => setKids(e.target.value)} />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Transfer Mode</label>
-                                    <select className="w-full p-3 bg-slate-50 rounded-xl border font-bold" onChange={e => setTransferPrice(e.target.value)}>
-                                        <option value="250">Speedboat (90 Mins) - $250</option>
-                                        <option value="399">Seaplane (25 Mins) - $399</option>
-                                    </select>
-                                </div>
-                            </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase">Adults <input type="number" value={adults} className="block w-full mt-1 p-3 bg-slate-50 border rounded-xl font-bold" onChange={e => setAdults(e.target.value)}/></label>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase">Children (2-11) <input type="number" value={kids} className="block w-full mt-1 p-3 bg-slate-50 border rounded-xl font-bold" onChange={e => setKids(e.target.value)}/></label>
+                        </div>
 
-                            <div className="bg-slate-50 p-6 rounded-3xl space-y-4 border border-slate-100">
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500 font-bold uppercase text-[9px]">Stay ({getNights()} Nights)</span>
-                                    <span className="font-bold text-slate-700">${(getSeasonalRate() * getNights()).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-sm text-green-600 font-bold">
-                                    <span className="uppercase text-[9px]">Stay Discount ({discount}%)</span>
-                                    <span>-${((getSeasonalRate() * getNights()) * (discount / 100)).toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-slate-500 font-bold uppercase text-[9px]">Green Tax (Inc. Kids)</span>
-                                    <span className="font-bold text-slate-700">${(12 * (parseInt(adults) + parseInt(kids)) * getNights()).toLocaleString()}</span>
-                                </div>
-                                <div className="pt-4 border-t border-dashed">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Adjust Markup (%)</label>
-                                    <input type="number" value={markup} className="w-full p-2 bg-white rounded-lg border font-bold text-blue-600" onChange={e => setMarkup(e.target.value)} />
-                                </div>
-                                <div className="pt-2">
-                                    <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Adjust Discount (%)</label>
-                                    <input type="number" value={discount} className="w-full p-2 bg-white rounded-lg border font-bold text-green-600" onChange={e => setDiscount(e.target.value)} />
-                                </div>
+                        <div className="grid grid-cols-2 gap-4 border-t pt-6">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase">Markup % <input type="number" value={markup} className="block w-full mt-1 p-3 bg-blue-50 text-blue-700 font-bold rounded-xl" onChange={e => setMarkup(e.target.value)}/></label>
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase">Stay Discount % <input type="number" value={discount} className="block w-full mt-1 p-3 bg-green-50 text-green-700 font-bold rounded-xl" onChange={e => setDiscount(e.target.value)}/></label>
+                        </div>
+
+                        <div className="bg-slate-900 rounded-2xl p-6 text-white text-center mt-4">
+                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Total Quotation</p>
+                            <p className="text-5xl font-black">${calculate().toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                            <div className="flex justify-between mt-4 text-[10px] opacity-50 font-bold uppercase">
+                                <span>{getNights()} Nights Stay</span>
+                                <span>Speedboat Transfer Inc.</span>
                             </div>
                         </div>
                     </div>
