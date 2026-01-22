@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Enterprise Travel Quote Engine</title>
+    <title>Professional Travel Quote Engine</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -13,7 +13,8 @@
     <script type="text/babel">
         const { useState } = React;
 
-        const masterData = { "locations": [ { "name": "Maldives", "resorts": [ { "resortName": "Hurawalhi Island Resort", "currency": "USD", "rooms": [ { "type": "Ocean Villa", "price": 1007 }, { "type": "Beach Pool Villa", "price": 1271 } ], "activities": [ { "name": "Seaplane Transfer", "price": 470, "perPerson": true }, { "name": "Half Board", "price": 85, "perPerson": true }, { "name": "Private Dinner", "price": 500, "perPerson": false } ] } ], }, { "name": "Finland", "resorts": [ { "resortName": "Kakslauttanen Arctic Resort", "currency": "EUR", "rooms": [ { "type": "Glass Igloo", "price": 598 }, { "type": "Kelo-Cabin", "price": 810 } ], "activities": [ { "name": "Husky Safari", "price": 178, "perPerson": true }, { "name": "Thermal Suits", "price": 0, "perPerson": true } ] } ] } ] };
+        // DATA SOURCE (PASTE YOUR FULL JSON HERE LATER)
+        const masterData = { "locations": [ { "name": "Maldives", "resorts": [ { "resortName": "Hurawalhi Island Resort", "currency": "USD", "rooms": [ { "type": "Ocean Villa", "price": 1007 }, { "type": "Beach Pool Villa", "price": 1271 } ], "activities": [ { "name": "Seaplane Transfer", "price": 470, "perPerson": true }, { "name": "Half Board Supplement", "price": 85, "perPerson": true }, { "name": "Christmas Gala Dinner", "price": 250, "perPerson": true } ] } ] }, { "name": "Finland", "resorts": [ { "resortName": "Kakslauttanen Arctic Resort", "currency": "EUR", "rooms": [ { "type": "Small Glass Igloo", "price": 598 }, { "type": "Kelo-Glass Igloo", "price": 810 } ], "activities": [ { "name": "2H Husky Safari", "price": 178, "perPerson": true }, { "name": "2H Reindeer Safari", "price": 109, "perPerson": true }, { "name": "Thermal Clothing", "price": 0, "perPerson": true } ] } ] } ] };
 
         function App() {
             const [markup, setMarkup] = useState(10);
@@ -26,9 +27,10 @@
             }]);
 
             const calculateNights = (start, end) => {
-                if (!start || !end) return 1;
+                if (!start || !end) return 0;
                 const diff = new Date(end) - new Date(start);
-                return Math.max(1, diff / (1000 * 60 * 60 * 24));
+                const nights = diff / (1000 * 60 * 60 * 24);
+                return nights > 0 ? nights : 0;
             };
 
             const calculateTotal = (q) => {
@@ -36,97 +38,101 @@
                 if (!resort) return 0;
                 const room = resort.rooms.find(rm => rm.type === q.room);
                 const nights = calculateNights(q.startDate, q.endDate);
-                
-                const stayCost = (room?.price || 0) * nights * (1 - (discount / 100));
-                
+                const totalPeople = parseInt(q.adults || 0) + parseInt(q.children || 0);
+
+                // Math Step 1: Stay Cost with Discount
+                const stayCost = ((room?.price || 0) * nights) * (1 - (discount / 100));
+
+                // Math Step 2: Activities (multiplying by people if perPerson is true)
                 const actTotal = q.selectedActivities.reduce((sum, name) => {
                     const act = resort.activities.find(a => a.name === name);
-                    const multiplier = act.perPerson ? (parseInt(q.adults) + parseInt(q.children)) : 1;
-                    return sum + (act.price * multiplier);
+                    const cost = act.perPerson ? (act.price * totalPeople) : act.price;
+                    return sum + cost;
                 }, 0);
 
+                // Math Step 3: Apply Profit Markup
                 return (stayCost + actTotal) * (1 + (markup / 100));
             };
 
             return (
                 <div className="max-w-7xl mx-auto">
-                    <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <div className="bg-white p-6 rounded-3xl shadow-sm border mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
                         <div>
-                            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Travel Intelligence Quote Engine</h1>
-                            <p className="text-slate-500 text-sm">Architecture V2.0 - Occupancy & Date Aware</p>
+                            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Travel Quote Engine</h1>
+                            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Architect Mode: Occupancy & Date Validation</p>
                         </div>
-                        <div className="flex gap-6">
-                            <div className="text-center">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">Profit Markup</span>
-                                <input type="number" value={markup} onChange={e => setMarkup(e.target.value)} className="block w-20 text-center font-bold text-blue-600 text-xl border-b-2 border-blue-100 focus:border-blue-500 outline-none"/>
+                        <div className="flex gap-4">
+                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
+                                <label className="block text-[10px] font-black text-blue-400 uppercase">Profit Markup %</label>
+                                <input type="number" value={markup} onChange={e => setMarkup(e.target.value)} className="bg-transparent text-2xl font-black text-blue-700 w-20 outline-none"/>
                             </div>
-                            <div className="text-center">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">Stay Discount</span>
-                                <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="block w-20 text-center font-bold text-green-600 text-xl border-b-2 border-green-100 focus:border-green-500 outline-none"/>
+                            <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
+                                <label className="block text-[10px] font-black text-green-400 uppercase">Stay Discount %</label>
+                                <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="bg-transparent text-2xl font-black text-green-700 w-20 outline-none"/>
                             </div>
                         </div>
                     </div>
 
-                    <button onClick={addQuote} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all active:scale-95 mb-10">
-                        + Create New Quote Comparison
+                    <button onClick={addQuote} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:bg-slate-800 transition-all mb-8">
+                        + Create Quote Comparison
                     </button>
 
-                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {quotes.map((q, idx) => (
-                            <div key={idx} className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
+                            <div key={idx} className="bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
                                 <div className="p-8 space-y-6 flex-1">
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="col-span-2">
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Destination & Resort</label>
-                                            <select className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700" onChange={e => { const n = [...quotes]; n[idx].resort = e.target.value; setQuotes(n); }}>
-                                                <option>Select Resort...</option>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Select Resort</label>
+                                            <select className="w-full p-4 bg-slate-50 border rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].resort = e.target.value; setQuotes(n); }}>
+                                                <option>Choose...</option>
                                                 {masterData.locations.flatMap(l => l.resorts).map(r => <option key={r.resortName}>{r.resortName}</option>)}
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Check-In</label>
-                                            <input type="date" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl" onChange={e => { const n = [...quotes]; n[idx].startDate = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Check-In</label>
+                                            <input type="date" className="w-full p-3 bg-slate-50 border rounded-xl" onChange={e => { const n = [...quotes]; n[idx].startDate = e.target.value; setQuotes(n); }} />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Check-Out</label>
-                                            <input type="date" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl" onChange={e => { const n = [...quotes]; n[idx].endDate = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Check-Out</label>
+                                            <input type="date" className="w-full p-3 bg-slate-50 border rounded-xl" onChange={e => { const n = [...quotes]; n[idx].endDate = e.target.value; setQuotes(n); }} />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Adults</label>
-                                            <input type="number" value={q.adults} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].adults = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Adults</label>
+                                            <input type="number" value={q.adults} className="w-full p-3 bg-slate-50 border rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].adults = e.target.value; setQuotes(n); }} />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Children</label>
-                                            <input type="number" value={q.children} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].children = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Children</label>
+                                            <input type="number" value={q.children} className="w-full p-3 bg-slate-50 border rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].children = e.target.value; setQuotes(n); }} />
                                         </div>
                                     </div>
 
                                     {q.resort && (
-                                        <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
+                                        <div className="space-y-6 animate-in fade-in">
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Room Selection</label>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Room Type</label>
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).rooms.map(rm => (
-                                                        <button key={rm.type} onClick={() => { const n = [...quotes]; n[idx].room = rm.type; setQuotes(n); }} className={`p-4 rounded-xl text-left border-2 transition-all ${q.room === rm.type ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 hover:border-slate-300 text-slate-600'}`}>
-                                                            <div className="flex justify-between font-bold"><span>{rm.type}</span><span>${rm.price}/nt</span></div>
+                                                        <button key={rm.type} onClick={() => { const n = [...quotes]; n[idx].room = rm.type; setQuotes(n); }} className={`p-4 rounded-xl text-left border-2 transition-all ${q.room === rm.type ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-50 text-slate-600'}`}>
+                                                            <div className="flex justify-between font-bold"><span>{rm.type}</span><span>${rm.price}</span></div>
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
                                             
                                             <div>
-                                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Available Activities</label>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Activities & Transfers</label>
                                                 <div className="space-y-2">
                                                     {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).activities.map(act => (
-                                                        <label key={act.name} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${q.selectedActivities.includes(act.name) ? 'border-blue-200 bg-blue-50' : 'border-slate-50 bg-slate-50/50'}`}>
+                                                        <label key={act.name} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer ${q.selectedActivities.includes(act.name) ? 'border-blue-100 bg-blue-50/50' : 'border-slate-50'}`}>
                                                             <div className="flex items-center gap-3">
                                                                 <input type="checkbox" checked={q.selectedActivities.includes(act.name)} onChange={() => {
                                                                     const n = [...quotes];
-                                                                    const current = n[idx].selectedActivities;
-                                                                    n[idx].selectedActivities = current.includes(act.name) ? current.filter(a => a !== act.name) : [...current, act.name];
+                                                                    const cur = n[idx].selectedActivities;
+                                                                    n[idx].selectedActivities = cur.includes(act.name) ? cur.filter(a => a !== act.name) : [...cur, act.name];
                                                                     setQuotes(n);
-                                                                }} className="w-5 h-5 rounded-md text-blue-600" />
-                                                                <span className="text-sm font-medium text-slate-700">{act.name} {act.perPerson && <span className="text-[10px] text-slate-400">(Per Guest)</span>}</span>
+                                                                }} className="w-5 h-5 rounded text-blue-600" />
+                                                                <span className="text-sm font-bold text-slate-700">{act.name} {act.perPerson && <span className="text-[9px] text-slate-400 font-normal ml-1">(Per Person)</span>}</span>
                                                             </div>
                                                             <span className="font-bold text-slate-900">${act.price}</span>
                                                         </label>
@@ -137,14 +143,14 @@
                                     )}
                                 </div>
                                 <div className="p-8 bg-slate-900 text-white">
-                                    <div className="flex justify-between items-end">
+                                    <div className="flex justify-between items-center">
                                         <div>
-                                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Total Quotation</p>
+                                            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Grand Total Quote</p>
                                             <p className="text-5xl font-black">${calculateTotal(q).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
                                         </div>
-                                        <div className="text-right text-[11px] opacity-60">
-                                            <p>{calculateNights(q.startDate, q.endDate)} Nights Stay</p>
-                                            <p>{q.adults} Adults, {q.children} Children</p>
+                                        <div className="text-right text-xs font-bold text-slate-400 italic">
+                                            <p>{calculateNights(q.startDate, q.endDate)} Nights</p>
+                                            <p>{parseInt(q.adults) + parseInt(q.children)} Guests</p>
                                         </div>
                                     </div>
                                 </div>
