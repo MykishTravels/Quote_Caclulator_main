@@ -2,130 +2,159 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Travel Quote Calculator</title>
+    <title>Enterprise Travel Quote Engine</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-50 p-8">
+<body class="bg-slate-100 p-4 md:p-8 font-sans">
     <div id="root"></div>
-
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState } = React;
 
-        // THIS IS YOUR DATA FROM THE PDF
-        const masterData = { "locations": [ { "name": "Maldives", "resorts": [ { "resortName": "Hurawalhi Island Resort", "currency": "USD", "locationType": "Component", "rooms": [ { "type": "Ocean Villa (Shoulder Season)", "price": 1007 }, { "type": "Romantic Ocean Villa (Shoulder Season)", "price": 1051 }, { "type": "Beach Pool Villa (Shoulder Season)", "price": 1271 }, { "type": "Beach Sunset Pool Villa (Shoulder Season)", "price": 1326 }, { "type": "Ocean Pool Villa (Shoulder Season)", "price": 1430 } ], "activities": [ { "name": "Seaplane Transfer (Roundtrip)", "price": 470, "isIncluded": false }, { "name": "Domestic + Boat Transfer (Comfort Class)", "price": 375, "isIncluded": false }, { "name": "Bed & Breakfast to Half Board Supplement", "price": 85, "isIncluded": false }, { "name": "Bed & Breakfast to Full Board Supplement", "price": 130, "isIncluded": false }, { "name": "Mandatory Christmas Eve Gala Dinner", "price": 250, "isIncluded": false }, { "name": "Welcome Drink", "price": 0, "isIncluded": true } ] }, { "resortName": "Cinnamon Dhonveli Maldives", "currency": "USD", "locationType": "Component", "rooms": [ { "type": "Superior Room - Ocean View", "price": 310 }, { "type": "Water Bungalow", "price": 484 }, { "type": "Over Water Suite", "price": 590 } ], "activities": [ { "name": "Speedboat Transfer (25 Minutes)", "price": 170, "isIncluded": false }, { "name": "All Inclusive Supplement", "price": 40, "isIncluded": false }, { "name": "Premium All Inclusive Supplement", "price": 110, "isIncluded": false }, { "name": "Christmas Eve Dinner Supplement", "price": 250, "isIncluded": false } ] }, { "resortName": "Siyam World Maldives", "currency": "USD", "locationType": "Component", "rooms": [ { "type": "Water Villa with Pool + Slide", "price": 938 }, { "type": "Lagoon Villa with Pool + Slide", "price": 1038 }, { "type": "Ocean Villa with Pool + Slide", "price": 1178 } ], "activities": [ { "name": "Combined Return Seaplane Transfer", "price": 490, "isIncluded": false }, { "name": "Combined Return Domestic Flight + Speedboat", "price": 325, "isIncluded": false }, { "name": "WOW! Inclusive Plan (24-Hour Premium)", "price": 0, "isIncluded": true }, { "name": "Green Tax (Mandatory)", "price": 12, "isIncluded": false } ] } ] }, { "name": "Finland", "resorts": [ { "resortName": "Kakslauttanen Arctic Resort", "currency": "EUR", "locationType": "Bundle", "rooms": [ { "type": "Small Cabin (Shoulder Season Package)", "price": 250 }, { "type": "Large Cabin (Shoulder Season Package)", "price": 283 }, { "type": "Small Glass Igloo (Shoulder Season Package)", "price": 598 }, { "type": "Kelo-Glass Igloo (Shoulder Season Package)", "price": 810 } ], "activities": [ { "name": "Buffet Breakfast", "price": 0, "isIncluded": true }, { "name": "Daily Cleaning", "price": 0, "isIncluded": true }, { "name": "Thermal Clothing (Included in activities)", "price": 0, "isIncluded": true }, { "name": "2H Husky Safari (Bundle Option)", "price": 178, "isIncluded": false }, { "name": "2H Reindeer Safari (Bundle Option)", "price": 109, "isIncluded": false }, { "name": "Northern Lights Show", "price": 39, "isIncluded": false } ] }, { "resortName": "Rovaniemi Insider", "currency": "EUR", "locationType": "Bundle", "rooms": [ { "type": "Studio Apartment (Spring Bundle)", "price": 55 }, { "type": "1 Bedroom Apartment with Sauna (Spring Bundle)", "price": 65 }, { "type": "2 Bedroom Apartment with Sauna (Spring Bundle)", "price": 75 } ], "activities": [ { "name": "Guaranteed Aurora Hunting (incl. clothing/drinks)", "price": 210, "isIncluded": false }, { "name": "Husky Sleigh Ride (incl. clothing)", "price": 85, "isIncluded": false }, { "name": "Winter Clothing Set (Included with 3+ activities)", "price": 0, "isIncluded": true }, { "name": "Daily Towel Change", "price": 0, "isIncluded": true } ] } ] } ] };
+        const masterData = { "locations": [ { "name": "Maldives", "resorts": [ { "resortName": "Hurawalhi Island Resort", "currency": "USD", "rooms": [ { "type": "Ocean Villa", "price": 1007 }, { "type": "Beach Pool Villa", "price": 1271 } ], "activities": [ { "name": "Seaplane Transfer", "price": 470, "perPerson": true }, { "name": "Half Board", "price": 85, "perPerson": true }, { "name": "Private Dinner", "price": 500, "perPerson": false } ] } ], }, { "name": "Finland", "resorts": [ { "resortName": "Kakslauttanen Arctic Resort", "currency": "EUR", "rooms": [ { "type": "Glass Igloo", "price": 598 }, { "type": "Kelo-Cabin", "price": 810 } ], "activities": [ { "name": "Husky Safari", "price": 178, "perPerson": true }, { "name": "Thermal Suits", "price": 0, "perPerson": true } ] } ] } ] };
 
         function App() {
-            const [markup, setMarkup] = useState(10); // 10% Default
-            const [discount, setDiscount] = useState(0); // 0% Default
+            const [markup, setMarkup] = useState(10);
+            const [discount, setDiscount] = useState(0);
             const [quotes, setQuotes] = useState([]);
 
-            const addQuote = () => {
-                setQuotes([...quotes, { location: "Maldives", resort: "", room: "", nights: 1, activities: [] }]);
+            const addQuote = () => setQuotes([...quotes, { 
+                resort: "", room: "", startDate: "", endDate: "", 
+                adults: 2, children: 0, selectedActivities: [] 
+            }]);
+
+            const calculateNights = (start, end) => {
+                if (!start || !end) return 1;
+                const diff = new Date(end) - new Date(start);
+                return Math.max(1, diff / (1000 * 60 * 60 * 24));
             };
 
-            const calculateTotal = (quote) => {
-                const resortData = masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === quote.resort);
-                if (!resortData) return 0;
-
-                const room = resortData.rooms.find(rm => rm.type === quote.room);
-                const roomPrice = room ? room.price : 0;
+            const calculateTotal = (q) => {
+                const resort = masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort);
+                if (!resort) return 0;
+                const room = resort.rooms.find(rm => rm.type === q.room);
+                const nights = calculateNights(q.startDate, q.endDate);
                 
-                // Discount applies ONLY to stay cost
-                const stayCost = (roomPrice * quote.nights) * (1 - (discount / 100));
+                const stayCost = (room?.price || 0) * nights * (1 - (discount / 100));
                 
-                const activityTotal = quote.activities.reduce((sum, actName) => {
-                    const act = resortData.activities.find(a => a.name === actName);
-                    return sum + (act ? act.price : 0);
+                const actTotal = q.selectedActivities.reduce((sum, name) => {
+                    const act = resort.activities.find(a => a.name === name);
+                    const multiplier = act.perPerson ? (parseInt(q.adults) + parseInt(q.children)) : 1;
+                    return sum + (act.price * multiplier);
                 }, 0);
 
-                const subtotal = stayCost + activityTotal;
-                return subtotal * (1 + (markup / 100));
+                return (stayCost + actTotal) * (1 + (markup / 100));
             };
 
             return (
-                <div className="max-w-6xl mx-auto">
-                    <h1 className="text-3xl font-bold mb-8">Travel Quote Calculator</h1>
-                    
-                    {/* Settings Panel */}
-                    <div className="bg-white p-6 rounded-xl shadow-sm mb-8 flex gap-8">
+                <div className="max-w-7xl mx-auto">
+                    <div className="flex justify-between items-center mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Global Markup (%)</label>
-                            <input type="number" value={markup} onChange={(e) => setMarkup(e.target.value)} className="mt-1 border p-2 rounded w-24" />
+                            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Travel Intelligence Quote Engine</h1>
+                            <p className="text-slate-500 text-sm">Architecture V2.0 - Occupancy & Date Aware</p>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700">Stay Discount (%)</label>
-                            <input type="number" value={discount} onChange={(e) => setDiscount(e.target.value)} className="mt-1 border p-2 rounded w-24" />
+                        <div className="flex gap-6">
+                            <div className="text-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Profit Markup</span>
+                                <input type="number" value={markup} onChange={e => setMarkup(e.target.value)} className="block w-20 text-center font-bold text-blue-600 text-xl border-b-2 border-blue-100 focus:border-blue-500 outline-none"/>
+                            </div>
+                            <div className="text-center">
+                                <span className="text-[10px] font-bold text-slate-400 uppercase">Stay Discount</span>
+                                <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="block w-20 text-center font-bold text-green-600 text-xl border-b-2 border-green-100 focus:border-green-500 outline-none"/>
+                            </div>
                         </div>
                     </div>
 
-                    <button onClick={addQuote} className="bg-blue-600 text-white px-6 py-2 rounded-lg mb-4">+ Add Resort to Comparison</button>
+                    <button onClick={addQuote} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-slate-800 transition-all active:scale-95 mb-10">
+                        + Create New Quote Comparison
+                    </button>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                         {quotes.map((q, idx) => (
-                            <div key={idx} className="bg-white p-6 rounded-xl shadow-md border-t-4 border-blue-500">
-                                <h3 className="font-bold mb-4">Quote #{idx + 1}</h3>
-                                <select 
-                                    className="w-full border p-2 mb-4"
-                                    onChange={(e) => {
-                                        const newQuotes = [...quotes];
-                                        newQuotes[idx].resort = e.target.value;
-                                        newQuotes[idx].room = ""; // Reset room
-                                        setQuotes(newQuotes);
-                                    }}
-                                >
-                                    <option>Select Resort</option>
-                                    {masterData.locations.flatMap(l => l.resorts).map(r => (
-                                        <option key={r.resortName} value={r.resortName}>{r.resortName}</option>
-                                    ))}
-                                </select>
-
-                                {q.resort && (
-                                    <>
-                                        <select 
-                                            className="w-full border p-2 mb-4"
-                                            onChange={(e) => {
-                                                const newQuotes = [...quotes];
-                                                newQuotes[idx].room = e.target.value;
-                                                setQuotes(newQuotes);
-                                            }}
-                                        >
-                                            <option>Select Room</option>
-                                            {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).rooms.map(rm => (
-                                                <option key={rm.type} value={rm.type}>{rm.type} (${rm.price})</option>
-                                            ))}
-                                        </select>
-                                        <input 
-                                            type="number" 
-                                            placeholder="Nights" 
-                                            value={q.nights}
-                                            onChange={(e) => {
-                                                const newQuotes = [...quotes];
-                                                newQuotes[idx].nights = e.target.value;
-                                                setQuotes(newQuotes);
-                                            }}
-                                            className="w-full border p-2 mb-4"
-                                        />
-                                        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                                            <p className="text-sm text-gray-600">Total (Incl. Markup):</p>
-                                            <p className="text-2xl font-bold text-blue-700">
-                                                ${calculateTotal(q).toFixed(2)}
-                                            </p>
+                            <div key={idx} className="bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden flex flex-col">
+                                <div className="p-8 space-y-6 flex-1">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="col-span-2">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Destination & Resort</label>
+                                            <select className="w-full p-4 bg-slate-50 border border-slate-100 rounded-xl font-bold text-slate-700" onChange={e => { const n = [...quotes]; n[idx].resort = e.target.value; setQuotes(n); }}>
+                                                <option>Select Resort...</option>
+                                                {masterData.locations.flatMap(l => l.resorts).map(r => <option key={r.resortName}>{r.resortName}</option>)}
+                                            </select>
                                         </div>
-                                    </>
-                                )}
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Check-In</label>
+                                            <input type="date" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl" onChange={e => { const n = [...quotes]; n[idx].startDate = e.target.value; setQuotes(n); }} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Check-Out</label>
+                                            <input type="date" className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl" onChange={e => { const n = [...quotes]; n[idx].endDate = e.target.value; setQuotes(n); }} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Adults</label>
+                                            <input type="number" value={q.adults} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].adults = e.target.value; setQuotes(n); }} />
+                                        </div>
+                                        <div>
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Children</label>
+                                            <input type="number" value={q.children} className="w-full p-3 bg-slate-50 border border-slate-100 rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].children = e.target.value; setQuotes(n); }} />
+                                        </div>
+                                    </div>
+
+                                    {q.resort && (
+                                        <div className="animate-in fade-in slide-in-from-top-4 duration-500 space-y-6">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Room Selection</label>
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).rooms.map(rm => (
+                                                        <button key={rm.type} onClick={() => { const n = [...quotes]; n[idx].room = rm.type; setQuotes(n); }} className={`p-4 rounded-xl text-left border-2 transition-all ${q.room === rm.type ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 hover:border-slate-300 text-slate-600'}`}>
+                                                            <div className="flex justify-between font-bold"><span>{rm.type}</span><span>${rm.price}/nt</span></div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            <div>
+                                                <label className="text-[10px] font-bold text-slate-400 uppercase mb-2 block">Available Activities</label>
+                                                <div className="space-y-2">
+                                                    {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).activities.map(act => (
+                                                        <label key={act.name} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${q.selectedActivities.includes(act.name) ? 'border-blue-200 bg-blue-50' : 'border-slate-50 bg-slate-50/50'}`}>
+                                                            <div className="flex items-center gap-3">
+                                                                <input type="checkbox" checked={q.selectedActivities.includes(act.name)} onChange={() => {
+                                                                    const n = [...quotes];
+                                                                    const current = n[idx].selectedActivities;
+                                                                    n[idx].selectedActivities = current.includes(act.name) ? current.filter(a => a !== act.name) : [...current, act.name];
+                                                                    setQuotes(n);
+                                                                }} className="w-5 h-5 rounded-md text-blue-600" />
+                                                                <span className="text-sm font-medium text-slate-700">{act.name} {act.perPerson && <span className="text-[10px] text-slate-400">(Per Guest)</span>}</span>
+                                                            </div>
+                                                            <span className="font-bold text-slate-900">${act.price}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-8 bg-slate-900 text-white">
+                                    <div className="flex justify-between items-end">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Total Quotation</p>
+                                            <p className="text-5xl font-black">${calculateTotal(q).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                                        </div>
+                                        <div className="text-right text-[11px] opacity-60">
+                                            <p>{calculateNights(q.startDate, q.endDate)} Nights Stay</p>
+                                            <p>{q.adults} Adults, {q.children} Children</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
             );
         }
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>
 </html>
