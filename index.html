@@ -2,139 +2,137 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Professional Travel Quote Engine</title>
+    <title>Mykish Travels | Pro Quote Engine</title>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>body { font-family: 'Inter', sans-serif; }</style>
 </head>
-<body class="bg-slate-100 p-4 md:p-8 font-sans">
+<body class="bg-slate-50 min-h-screen">
     <div id="root"></div>
-    <script type="text/babel">
-        const { useState } = React;
 
-        // DATA SOURCE (PASTE YOUR FULL JSON HERE LATER)
-        const masterData = { "locations": [ { "name": "Maldives", "resorts": [ { "resortName": "Hurawalhi Island Resort", "currency": "USD", "rooms": [ { "type": "Ocean Villa", "price": 1007 }, { "type": "Beach Pool Villa", "price": 1271 } ], "activities": [ { "name": "Seaplane Transfer", "price": 470, "perPerson": true }, { "name": "Half Board Supplement", "price": 85, "perPerson": true }, { "name": "Christmas Gala Dinner", "price": 250, "perPerson": true } ] } ] }, { "name": "Finland", "resorts": [ { "resortName": "Kakslauttanen Arctic Resort", "currency": "EUR", "rooms": [ { "type": "Small Glass Igloo", "price": 598 }, { "type": "Kelo-Glass Igloo", "price": 810 } ], "activities": [ { "name": "2H Husky Safari", "price": 178, "perPerson": true }, { "name": "2H Reindeer Safari", "price": 109, "perPerson": true }, { "name": "Thermal Clothing", "price": 0, "perPerson": true } ] } ] } ] };
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // MASTER DATABASE (Expand this with your 40 PDFs later)
+        const masterData = { "locations": [ { "name": "Maldives", "resorts": [ { "resortName": "Hurawalhi Island Resort", "currency": "USD", "rooms": [ { "type": "Ocean Villa", "price": 1007 }, { "type": "Beach Pool Villa", "price": 1271 } ], "activities": [ { "name": "Seaplane Transfer", "price": 470, "perPerson": true }, { "name": "Half Board Supplement", "price": 85, "perPerson": true } ] }, { "resortName": "Cinnamon Dhonveli", "currency": "USD", "rooms": [ { "type": "Water Bungalow", "price": 484 }, { "type": "Over Water Suite", "price": 590 } ], "activities": [ { "name": "Speedboat Transfer", "price": 170, "perPerson": true } ] } ] }, { "name": "Finland", "resorts": [ { "resortName": "Kakslauttanen Arctic Resort", "currency": "EUR", "rooms": [ { "type": "Glass Igloo", "price": 598 }, { "type": "Kelo-Glass Igloo", "price": 810 } ], "activities": [ { "name": "2H Husky Safari", "price": 178, "perPerson": true }, { "name": "Thermal Clothing", "price": 0, "perPerson": true } ] } ] } ] };
 
         function App() {
-            const [markup, setMarkup] = useState(10);
-            const [discount, setDiscount] = useState(0);
-            const [quotes, setQuotes] = useState([]);
+            const [globalMarkup, setGlobalMarkup] = useState(10);
+            const [stayDiscount, setStayDiscount] = useState(0);
+            const [quotes, setQuotes] = useState([{ id: Date.now(), resort: "", room: "", start: "", end: "", adults: 2, kids: 0, activities: [] }]);
 
-            const addQuote = () => setQuotes([...quotes, { 
-                resort: "", room: "", startDate: "", endDate: "", 
-                adults: 2, children: 0, selectedActivities: [] 
-            }]);
+            const addQuote = () => setQuotes([...quotes, { id: Date.now(), resort: "", room: "", start: "", end: "", adults: 2, kids: 0, activities: [] }]);
+            const removeQuote = (id) => setQuotes(quotes.filter(q => q.id !== id));
 
-            const calculateNights = (start, end) => {
-                if (!start || !end) return 0;
-                const diff = new Date(end) - new Date(start);
-                const nights = diff / (1000 * 60 * 60 * 24);
-                return nights > 0 ? nights : 0;
+            const calculateNights = (s, e) => {
+                if (!s || !e) return 0;
+                const n = (new Date(e) - new Date(s)) / (1000 * 60 * 60 * 24);
+                return n > 0 ? n : 0;
             };
 
-            const calculateTotal = (q) => {
+            const getQuoteTotal = (q) => {
                 const resort = masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort);
                 if (!resort) return 0;
                 const room = resort.rooms.find(rm => rm.type === q.room);
-                const nights = calculateNights(q.startDate, q.endDate);
-                const totalPeople = parseInt(q.adults || 0) + parseInt(q.children || 0);
+                const nights = calculateNights(q.start, q.end);
+                const people = parseInt(q.adults || 0) + parseInt(q.kids || 0);
 
-                // Math Step 1: Stay Cost with Discount
-                const stayCost = ((room?.price || 0) * nights) * (1 - (discount / 100));
-
-                // Math Step 2: Activities (multiplying by people if perPerson is true)
-                const actTotal = q.selectedActivities.reduce((sum, name) => {
-                    const act = resort.activities.find(a => a.name === name);
-                    const cost = act.perPerson ? (act.price * totalPeople) : act.price;
-                    return sum + cost;
+                const baseStay = ((room?.price || 0) * nights) * (1 - (stayDiscount / 100));
+                const actTotal = q.activities.reduce((acc, name) => {
+                    const a = resort.activities.find(item => item.name === name);
+                    return acc + (a.perPerson ? a.price * people : a.price);
                 }, 0);
 
-                // Math Step 3: Apply Profit Markup
-                return (stayCost + actTotal) * (1 + (markup / 100));
+                return (baseStay + actTotal) * (1 + (globalMarkup / 100));
             };
 
             return (
-                <div className="max-w-7xl mx-auto">
-                    <div className="bg-white p-6 rounded-3xl shadow-sm border mb-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                <div className="p-4 max-w-6xl mx-auto">
+                    <header className="flex flex-col md:flex-row justify-between items-center mb-12 py-8 border-b border-slate-200">
                         <div>
-                            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Travel Quote Engine</h1>
-                            <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Architect Mode: Occupancy & Date Validation</p>
+                            <h1 className="text-4xl font-black text-slate-900 tracking-tighter">MYKISH TRAVELS</h1>
+                            <p className="text-slate-500 font-bold text-xs uppercase tracking-widest mt-1">Quotation Architect v3.0</p>
                         </div>
-                        <div className="flex gap-4">
-                            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100">
-                                <label className="block text-[10px] font-black text-blue-400 uppercase">Profit Markup %</label>
-                                <input type="number" value={markup} onChange={e => setMarkup(e.target.value)} className="bg-transparent text-2xl font-black text-blue-700 w-20 outline-none"/>
+                        <div className="flex gap-4 mt-6 md:mt-0">
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Global Markup %</p>
+                                <input type="number" value={globalMarkup} onChange={e => setGlobalMarkup(e.target.value)} className="text-2xl font-black text-blue-600 w-20 outline-none" />
                             </div>
-                            <div className="bg-green-50 p-4 rounded-2xl border border-green-100">
-                                <label className="block text-[10px] font-black text-green-400 uppercase">Stay Discount %</label>
-                                <input type="number" value={discount} onChange={e => setDiscount(e.target.value)} className="bg-transparent text-2xl font-black text-green-700 w-20 outline-none"/>
+                            <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                                <p className="text-[10px] font-black text-slate-400 uppercase">Stay Discount %</p>
+                                <input type="number" value={stayDiscount} onChange={e => setStayDiscount(e.target.value)} className="text-2xl font-black text-emerald-600 w-20 outline-none" />
                             </div>
                         </div>
-                    </div>
+                    </header>
 
-                    <button onClick={addQuote} className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-bold shadow-xl hover:bg-slate-800 transition-all mb-8">
-                        + Create Quote Comparison
-                    </button>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 gap-8">
                         {quotes.map((q, idx) => (
-                            <div key={idx} className="bg-white rounded-[2rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
-                                <div className="p-8 space-y-6 flex-1">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div className="col-span-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Select Resort</label>
-                                            <select className="w-full p-4 bg-slate-50 border rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].resort = e.target.value; setQuotes(n); }}>
-                                                <option>Choose...</option>
+                            <div key={q.id} className="bg-white rounded-[2.5rem] shadow-xl border border-slate-200 overflow-hidden flex flex-col md:flex-row">
+                                <div className="p-8 md:w-2/3 space-y-8 border-r border-slate-100">
+                                    <div className="flex justify-between items-center">
+                                        <h2 className="text-xl font-black text-slate-800 italic">Option #{idx + 1}</h2>
+                                        <button onClick={() => removeQuote(q.id)} className="text-red-400 text-xs font-bold uppercase hover:text-red-600">Remove</button>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="md:col-span-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Select Destination</label>
+                                            <select className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-blue-500 outline-none" onChange={e => { const n = [...quotes]; n[idx].resort = e.target.value; n[idx].room=""; setQuotes(n); }}>
+                                                <option>Choose a Resort...</option>
                                                 {masterData.locations.flatMap(l => l.resorts).map(r => <option key={r.resortName}>{r.resortName}</option>)}
                                             </select>
                                         </div>
+                                        
                                         <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Check-In</label>
-                                            <input type="date" className="w-full p-3 bg-slate-50 border rounded-xl" onChange={e => { const n = [...quotes]; n[idx].startDate = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Check-In</label>
+                                            <input type="date" className="w-full p-4 bg-slate-50 rounded-2xl font-bold ring-1 ring-slate-200" onChange={e => { const n = [...quotes]; n[idx].start = e.target.value; setQuotes(n); }} />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Check-Out</label>
-                                            <input type="date" className="w-full p-3 bg-slate-50 border rounded-xl" onChange={e => { const n = [...quotes]; n[idx].endDate = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Check-Out</label>
+                                            <input type="date" className="w-full p-4 bg-slate-50 rounded-2xl font-bold ring-1 ring-slate-200" onChange={e => { const n = [...quotes]; n[idx].end = e.target.value; setQuotes(n); }} />
+                                        </div>
+
+                                        <div>
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Adults</label>
+                                            <input type="number" value={q.adults} className="w-full p-4 bg-slate-50 rounded-2xl font-bold ring-1 ring-slate-200" onChange={e => { const n = [...quotes]; n[idx].adults = e.target.value; setQuotes(n); }} />
                                         </div>
                                         <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Adults</label>
-                                            <input type="number" value={q.adults} className="w-full p-3 bg-slate-50 border rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].adults = e.target.value; setQuotes(n); }} />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Children</label>
-                                            <input type="number" value={q.children} className="w-full p-3 bg-slate-50 border rounded-xl font-bold" onChange={e => { const n = [...quotes]; n[idx].children = e.target.value; setQuotes(n); }} />
+                                            <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Children</label>
+                                            <input type="number" value={q.kids} className="w-full p-4 bg-slate-50 rounded-2xl font-bold ring-1 ring-slate-200" onChange={e => { const n = [...quotes]; n[idx].kids = e.target.value; setQuotes(n); }} />
                                         </div>
                                     </div>
 
                                     {q.resort && (
-                                        <div className="space-y-6 animate-in fade-in">
+                                        <div className="space-y-6 pt-4 border-t border-dashed">
                                             <div>
-                                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Room Type</label>
-                                                <div className="grid grid-cols-1 gap-2">
+                                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-3">Room Category</label>
+                                                <div className="grid grid-cols-1 gap-3">
                                                     {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).rooms.map(rm => (
-                                                        <button key={rm.type} onClick={() => { const n = [...quotes]; n[idx].room = rm.type; setQuotes(n); }} className={`p-4 rounded-xl text-left border-2 transition-all ${q.room === rm.type ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-50 text-slate-600'}`}>
-                                                            <div className="flex justify-between font-bold"><span>{rm.type}</span><span>${rm.price}</span></div>
+                                                        <button key={rm.type} onClick={() => { const n = [...quotes]; n[idx].room = rm.type; setQuotes(n); }} className={`p-5 rounded-2xl text-left border-2 transition-all ${q.room === rm.type ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-100 hover:border-slate-200 text-slate-600'}`}>
+                                                            <div className="flex justify-between font-black"><span>{rm.type}</span><span>${rm.price} /nt</span></div>
                                                         </button>
                                                     ))}
                                                 </div>
                                             </div>
-                                            
+
                                             <div>
-                                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-2">Activities & Transfers</label>
+                                                <label className="text-[10px] font-black text-slate-400 uppercase block mb-3">Add-Ons & Transfers</label>
                                                 <div className="space-y-2">
                                                     {masterData.locations.flatMap(l => l.resorts).find(r => r.resortName === q.resort).activities.map(act => (
-                                                        <label key={act.name} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer ${q.selectedActivities.includes(act.name) ? 'border-blue-100 bg-blue-50/50' : 'border-slate-50'}`}>
-                                                            <div className="flex items-center gap-3">
-                                                                <input type="checkbox" checked={q.selectedActivities.includes(act.name)} onChange={() => {
+                                                        <label key={act.name} className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${q.activities.includes(act.name) ? 'border-blue-200 bg-blue-50/50' : 'border-slate-50'}`}>
+                                                            <div className="flex items-center gap-4">
+                                                                <input type="checkbox" checked={q.activities.includes(act.name)} onChange={() => {
                                                                     const n = [...quotes];
-                                                                    const cur = n[idx].selectedActivities;
-                                                                    n[idx].selectedActivities = cur.includes(act.name) ? cur.filter(a => a !== act.name) : [...cur, act.name];
+                                                                    const cur = n[idx].activities;
+                                                                    n[idx].activities = cur.includes(act.name) ? cur.filter(a => a !== act.name) : [...cur, act.name];
                                                                     setQuotes(n);
-                                                                }} className="w-5 h-5 rounded text-blue-600" />
-                                                                <span className="text-sm font-bold text-slate-700">{act.name} {act.perPerson && <span className="text-[9px] text-slate-400 font-normal ml-1">(Per Person)</span>}</span>
+                                                                }} className="w-6 h-6 rounded-lg text-blue-600" />
+                                                                <span className="font-bold text-slate-700">{act.name} {act.perPerson && <span className="text-[9px] text-slate-400 ml-1">(per person)</span>}</span>
                                                             </div>
-                                                            <span className="font-bold text-slate-900">${act.price}</span>
+                                                            <span className="font-black text-slate-900">${act.price}</span>
                                                         </label>
                                                     ))}
                                                 </div>
@@ -142,25 +140,30 @@
                                         </div>
                                     )}
                                 </div>
-                                <div className="p-8 bg-slate-900 text-white">
-                                    <div className="flex justify-between items-center">
-                                        <div>
-                                            <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Grand Total Quote</p>
-                                            <p className="text-5xl font-black">${calculateTotal(q).toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
-                                        </div>
-                                        <div className="text-right text-xs font-bold text-slate-400 italic">
-                                            <p>{calculateNights(q.startDate, q.endDate)} Nights</p>
-                                            <p>{parseInt(q.adults) + parseInt(q.children)} Guests</p>
-                                        </div>
+
+                                <div className="p-10 bg-slate-900 text-white md:w-1/3 flex flex-col justify-center items-center text-center">
+                                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-4">Total Quote</p>
+                                    <h3 className="text-6xl font-black mb-6">${getQuoteTotal(q).toLocaleString(undefined, {minimumFractionDigits: 2})}</h3>
+                                    <div className="space-y-2 text-slate-400 font-bold text-sm">
+                                        <p>{calculateNights(q.start, q.end)} Nights</p>
+                                        <p>{parseInt(q.adults || 0) + parseInt(q.kids || 0)} Guests</p>
+                                    </div>
+                                    <div className="mt-10 pt-10 border-t border-slate-800 w-full text-[10px] uppercase font-bold text-slate-500">
+                                        Calculated with {globalMarkup}% Markup
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
+
+                    <button onClick={addQuote} className="mt-12 w-full p-6 border-4 border-dashed border-slate-200 rounded-[2.5rem] text-slate-300 font-black text-2xl hover:border-blue-200 hover:text-blue-200 transition-all active:scale-[0.99]">
+                        + ADD COMPARISON OPTION
+                    </button>
                 </div>
             );
         }
-        ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
